@@ -112,7 +112,7 @@ static int foldprint(Db *db, DocInfo *docinfo, void *ctx)
     Doc *doc = NULL;
     uint64_t cas;
     uint32_t expiry, flags;
-    uint8_t datatype = 0x00, flex_code;
+    uint8_t datatype = 0x00, flex_code = 0x01, conf_res_flag = 0x00;
     couchstore_error_t docerr;
     (*count)++;
 
@@ -154,18 +154,40 @@ static int foldprint(Db *db, DocInfo *docinfo, void *ctx)
         expiry = decode_raw32(meta->expiry);
         flags = decode_raw32(meta->flags);
         if (docinfo->rev_meta.size > sizeof(CouchbaseRevMeta)) {
+            // 18 bytes of rev_meta indicates CouchbaseRevMeta along with
+            // flex_meta_code (1B) and datatype (1B)
+            assert(docinfo->rev_meta.size >= sizeof(CouchbaseRevMeta) + 2);
             flex_code = *((uint8_t *)(docinfo->rev_meta.buf + sizeof(CouchbaseRevMeta)));
             assert(flex_code >= 0x01);
             datatype = *((uint8_t *)(docinfo->rev_meta.buf + sizeof(CouchbaseRevMeta) +
                         sizeof(uint8_t)));
-            if (dumpJson) {
-                printf("\"cas\":\"%"PRIu64"\",\"expiry\":%"PRIu32",\"flags\":%"PRIu32","
-                        "\"datatype\":%d,",
-                        cas, expiry, flags, datatype);
+            if (docinfo->rev_meta.size > sizeof(CouchbaseRevMeta) + 2) {
+                // 19 bytes of rev_meta indicates CouchbaseRevMeta along with
+                // flex_meta_code (1B) and datatype (1B), along with the conflict
+                // resolution flag (1B).
+                conf_res_flag = *((uint8_t *)(docinfo->rev_meta.buf +
+                                  sizeof(CouchbaseRevMeta) + sizeof(uint8_t) +
+                                  sizeof(uint8_t)));
+
+                if (dumpJson) {
+                    printf("\"cas\":\"%"PRIu64"\",\"expiry\":%"PRIu32",\"flags\":%"PRIu32","
+                           "\"datatype\":%d,\"lww_conflict_resolution\":%d,",
+                            cas, expiry, flags, datatype, conf_res_flag);
+                } else {
+                    printf("     cas: %"PRIu64", expiry: %"PRIu32", flags: %"PRIu32", "
+                           "datatype: %d, lww_conflict_resolution: %d\n",
+                           cas, expiry, flags, datatype, conf_res_flag);
+                }
             } else {
-                printf("     cas: %"PRIu64", expiry: %"PRIu32", flags: %"PRIu32", "
-                        "datatype: %d\n",
-                        cas, expiry, flags, datatype);
+                if (dumpJson) {
+                    printf("\"cas\":\"%"PRIu64"\",\"expiry\":%"PRIu32",\"flags\":%"PRIu32","
+                           "\"datatype\":%d,",
+                            cas, expiry, flags, datatype);
+                } else {
+                    printf("     cas: %"PRIu64", expiry: %"PRIu32", flags: %"PRIu32", "
+                           "datatype: %d\n",
+                           cas, expiry, flags, datatype);
+                }
             }
         } else {
             if (dumpJson) {
