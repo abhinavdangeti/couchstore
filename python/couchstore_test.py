@@ -3,6 +3,9 @@ import os
 import struct
 import unittest
 
+import datetime
+from random import randint
+import linecache
 
 def removeIfExists(path):
     try:
@@ -20,12 +23,70 @@ class NonexistentCouchStoreTest (unittest.TestCase):
 class CouchStoreTest (unittest.TestCase):
     def setUp(self):
         removeIfExists("/tmp/test.couch")
-        self.store = CouchStore("/tmp/test.couch", 'c')
+        #self.store = CouchStore("/tmp/test.couch", 'c')
+        self.store = CouchStore("/Users/abhinavdangeti/Desktop/74.couch.18", 'rw')
 
     def tearDown(self):
         self.store.close()
-        os.remove("/tmp/test.couch")
+        #os.remove("/tmp/test.couch")
 
+    def testFetch(self):
+        times = []
+        x = randint(0, 200000)
+        while len(times) < 100:
+            x = x + randint(0, 10000)
+            line = linecache.getline('/Users/abhinavdangeti/Documents/cbTickets/CBSE1760/couch_files/tree_74.couch.18.txt', x)
+            if not line:
+                continue
+            words = line.split("\n")[0].split(" ")
+            string = ""
+            for i in words:
+                if i != "":
+                    if i == "+":
+                        break
+                    if i == "*":
+                        string = words[-1]
+                        break
+            if string == "":
+                continue
+            try:
+                start = datetime.datetime.now()
+                data = self.store.get(string, CouchStore.DECOMPRESS)
+                end = datetime.datetime.now()
+                diff = end - start
+                times.append(diff)
+            except:
+                pass
+        s = []
+        ms = []
+        #print "Samples: "
+        for i in range(0, len(times)):
+            s.append(times[i].seconds)
+            ms.append(times[i].microseconds)
+            #print "{0}. {1}s {2}us".format(i, times[i].seconds, times[i].microseconds)
+        print "\n<TESTFETCH> Average: {0}s {1}ms {1}us\n".format(float(sum(s))/len(s),
+                                                                 float(sum(ms))/len(ms))
+
+    def testWrite(self):
+        batch = 1000
+        x = randint(0, 1000000)
+        k = []
+        v = []
+        for i in range(x, x + batch):
+            d = DocumentInfo(str(i))
+            d.revMeta = "hello-%s" % i
+            k.append(d)
+            v.append("world-%s" % i)
+        start = datetime.datetime.now()
+        self.store.saveMultiple(k, v)
+        #self.store.commit()
+        end = datetime.datetime.now()
+        diff = end - start
+        print "\n<TESTWRITE> Time for a batch of {0}: {1} ({2}s {3}us)\n".format(batch, diff,
+                                                                                 diff.seconds,
+                                                                                 diff.microseconds)
+
+    """
     def testBasicSave(self):
         sequence = self.store.save("foo", "value of foo")
         self.assertEqual(sequence, 1)
@@ -280,7 +341,7 @@ class CouchStoreTest (unittest.TestCase):
             self.assertEqual(i1, i * 1)
             doc_contents = doc_info.getContents()
             self.assertEqual(doc_contents, "world-%s" % doc_info.id)
-
+    """
 
 if __name__ == '__main__':
     unittest.main()
