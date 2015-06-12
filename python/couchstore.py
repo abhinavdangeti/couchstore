@@ -322,11 +322,13 @@ class CouchStore(object):
                 info.deleted = True
             infoStructs[i] = ctypes.pointer(info)
             docStructs[i] = ctypes.pointer(doc)
+        unused1 = unused2 = unused3 = unused = 0
         _check(_lib.couchstore_save_documents(self,
                                               ctypes.byref(docStructs),
                                               ctypes.byref(infoStructs),
                                               ctypes.c_uint(n),
-                                              ctypes.c_uint64(options)))
+                                              ctypes.c_uint64(options),
+                                              unused1, unused2, unused3, unused4))
         return [info.contents.db_seq for info in infoStructs]
     pass
 

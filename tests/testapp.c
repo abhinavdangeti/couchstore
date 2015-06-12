@@ -298,7 +298,9 @@ static void test_save_docs(int count, const char *doc_tpl)
     remove(testfilepath);
     try(couchstore_open_db(testfilepath, COUCHSTORE_OPEN_FLAG_CREATE, &db));
     assert(strcmp(couchstore_get_db_filename(db), testfilepath) == 0);
-    try(couchstore_save_documents(db, docptrs, nfoptrs, count, 0));
+    hrtime_t u1, u2, u3, u4;
+    try(couchstore_save_documents(db, docptrs, nfoptrs, count, 0,
+                                  &u1, &u2, &u3, &u4));
     try(couchstore_commit(db));
     couchstore_close_db(db);
 
@@ -454,8 +456,10 @@ static void test_compressed_doc_body(void)
     testdocset.infos[1].content_meta = COUCH_DOC_IS_COMPRESSED;
     remove(testfilepath);
     try(couchstore_open_db(testfilepath, COUCHSTORE_OPEN_FLAG_CREATE, &db));
+    hrtime_t u1, u2, u3, u4;
     try(couchstore_save_documents(db, docptrs, nfoptrs, 2,
-                                      COMPRESS_DOC_BODIES));
+                                      COMPRESS_DOC_BODIES,
+                                      &u1, &u2, &u3, &u4));
     try(couchstore_commit(db));
     couchstore_close_db(db);
     /* Read back */
@@ -616,7 +620,9 @@ static void test_changes_no_dups(void)
     remove(testfilepath);
     try(couchstore_open_db(testfilepath, COUCHSTORE_OPEN_FLAG_CREATE, &db));
     /* only save half the docs at first. */
-    try(couchstore_save_documents(db, docptrs, nfoptrs, numdocs/2, 0));
+    hrtime_t u1, u2, u3, u4;
+    try(couchstore_save_documents(db, docptrs, nfoptrs, numdocs/2, 0,
+                                  &u1, &u2, &u3, &u4));
     try(couchstore_commit(db));
     couchstore_close_db(db);
 
@@ -630,7 +636,9 @@ static void test_changes_no_dups(void)
     try(couchstore_open_db(testfilepath, 0, &db));
     for (i=0; i < numdocs; i += updatebatch) {
         /* now do bulk updates and check the changes for dups */
-        try(couchstore_save_documents(db, docptrs + i, nfoptrs + i, updatebatch, 0));
+        hrtime_t u1, u2, u3, u4;
+        try(couchstore_save_documents(db, docptrs + i, nfoptrs + i, updatebatch, 0,
+                                      &u1, &u2, &u3, &u4));
         try(couchstore_commit(db));
         memset(docmap, 0, numdocs);
         try(couchstore_changes_since(db, 0, 0, docmap_check, docmap));

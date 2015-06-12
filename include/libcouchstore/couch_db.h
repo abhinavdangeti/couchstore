@@ -7,6 +7,8 @@
 #include <libcouchstore/error.h>
 #include <libcouchstore/file_ops.h>
 
+#include <sys/time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -229,7 +231,9 @@ extern "C" {
                                                  Doc* const docs[],
                                                  DocInfo *infos[],
                                                  unsigned numDocs,
-                                                 couchstore_save_options options);
+                                                 couchstore_save_options options,
+                                                 hrtime_t *add_start, hrtime_t *add_end,
+                                                 hrtime_t *upd_start, hrtime_t *upd_end);
     /**
      * Commit all pending changes and flush buffers to persistent storage.
      *

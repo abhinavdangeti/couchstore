@@ -402,8 +402,10 @@ extern "C" {
 
         Db *db = getDb(ls);
 
+        int64_t unused1, unused2, unused3, unused4;
         int rc = couchstore_save_documents(db, bs.docs, bs.infos,
-                                           bs.size, COMPRESS_DOC_BODIES);
+                                           bs.size, COMPRESS_DOC_BODIES,
+                                           &unused1, &unused2, &unused3, &unused4);
         if (rc < 0) {
             char buf[256];
             snprintf(buf, sizeof(buf), "error storing document: %s", couchstore_strerror(rc));

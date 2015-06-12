@@ -10,6 +10,8 @@
 #include "reduces.h"
 #include "couch_btree.h"
 
+#include <sys/time.h>
+
 #define SEQ_INDEX_RAW_VALUE_SIZE(doc_info) \
     (sizeof(raw_seq_index_value) + (doc_info).id.size + (doc_info).rev_meta.size)
 
@@ -328,7 +330,9 @@ couchstore_error_t couchstore_save_documents(Db *db,
                                              Doc* const docs[],
                                              DocInfo *infos[],
                                              unsigned numdocs,
-                                             couchstore_save_options options)
+                                             couchstore_save_options options,
+                                             hrtime_t *add_start, hrtime_t *add_end,
+                                             hrtime_t *upd_start, hrtime_t *upd_end)
 {
     couchstore_error_t errcode = COUCHSTORE_SUCCESS;
     unsigned ii;
@@ -362,6 +366,7 @@ couchstore_error_t couchstore_save_documents(Db *db,
     seqvlist = static_cast<sized_buf*>(fatbuf_get(fb, numdocs * sizeof(sized_buf)));
     idvlist = static_cast<sized_buf*>(fatbuf_get(fb, numdocs * sizeof(sized_buf)));
 
+    *add_start = gethrtime();
     for (ii = 0; ii < numdocs; ii++) {
         if(options & COUCHSTORE_SEQUENCE_AS_IS) {
             seq = infos[ii]->db_seq;
@@ -383,10 +388,13 @@ couchstore_error_t couchstore_save_documents(Db *db,
             break;
         }
     }
+    *add_end = gethrtime();
 
     if (errcode == COUCHSTORE_SUCCESS) {
+        *upd_start = gethrtime();
         errcode = update_indexes(db, seqklist, seqvlist,
                                  idklist, idvlist, numdocs);
+        *upd_end = gethrtime();
     }
 
     fatbuf_free(fb);
@@ -417,5 +425,7 @@ LIBCOUCHSTORE_API
 couchstore_error_t couchstore_save_document(Db *db, const Doc *doc,
                                             DocInfo *info, couchstore_save_options options)
 {
-    return couchstore_save_documents(db, (Doc**)&doc, (DocInfo**)&info, 1, options);
+    hrtime_t unused1, unused2, unused3, unused4;
+    return couchstore_save_documents(db, (Doc**)&doc, (DocInfo**)&info, 1, options,
+                                     &unused1, &unused2, &unused3, &unused4);
 }
